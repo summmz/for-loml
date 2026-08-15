@@ -7,9 +7,11 @@ import ChatInput from './components/ChatInput';
 import CuddleOverlay from './components/CuddleOverlay';
 import CallOverlay from './components/CallOverlay';
 import FeedDrawer from './components/FeedDrawer';
+import MusicPlayer from './components/MusicPlayer';
+import DailyCheckinOverlay from './components/DailyCheckinOverlay';
+import SurpriseEvent from './components/SurpriseEvent';
 import './index.css';
-
-const chatStyle = '';
+import chatStyle from './assets/chat_history.txt?raw';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || 'missing' });
 
@@ -452,6 +454,29 @@ function App() {
     };
   }, []);
 
+  // Time-of-Day Background Theme
+  useEffect(() => {
+    const updateTheme = () => {
+      const hour = new Date().getHours();
+      document.body.classList.remove('theme-morning', 'theme-afternoon', 'theme-evening', 'theme-night');
+      if (hour >= 6 && hour < 12) {
+        document.body.classList.add('theme-morning');
+      } else if (hour >= 12 && hour < 18) {
+        document.body.classList.add('theme-afternoon');
+      } else if (hour >= 18 && hour < 22) {
+        document.body.classList.add('theme-evening');
+      } else {
+        document.body.classList.add('theme-night');
+      }
+    };
+    
+    updateTheme();
+    const interval = setInterval(updateTheme, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
+
+
   // Virtual Cuddle accumulation logic
   useEffect(() => {
     if (!isCuddling) return;
@@ -664,7 +689,7 @@ CRITICAL BEHAVIORAL RULES:
 
 Reference texts (match this exact vibe):
 ---
-${chatStyle.split('\\n').slice(0, 50).join('\\n')}
+${chatStyle.split('\n').slice(0, 500).join('\n')}
 ---`;
 
     // Build conversation history for context
@@ -707,6 +732,15 @@ ${chatStyle.split('\\n').slice(0, 50).join('\\n')}
         ...contents,
         { role: 'model', parts: [{ text: reply }] },
       ].slice(-20);
+
+      // Feature 7: TTS Voice Response
+      if (stats.attention > 80 && reply.length < 50) {
+        const utterance = new SpeechSynthesisUtterance(reply);
+        utterance.lang = 'hi-IN'; // Hint for Indian accent if available
+        utterance.pitch = 1.1; // Slightly higher pitch for cuteness
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
 
       // Show reply in speech bubble + trigger animation
       showMessage(reply, 7000);
@@ -782,6 +816,7 @@ ${chatStyle.split('\\n').slice(0, 50).join('\\n')}
   };
 
   return (
+    <>
     <div className="game-container">
       <header>
         <h1>Take Care of Nini 🤍</h1>
@@ -812,6 +847,7 @@ ${chatStyle.split('\\n').slice(0, 50).join('\\n')}
         isCuddling={isCuddling}
       />
       <ChatInput onSend={handleChat} isThinking={isThinking} />
+      <MusicPlayer />
 
       <CuddleOverlay isActive={isCuddling} />
       <CallOverlay isActive={isCallActive} onClose={() => setIsCallActive(false)} />
@@ -822,6 +858,23 @@ ${chatStyle.split('\\n').slice(0, 50).join('\\n')}
         onDragStateChange={setIsDraggingFood}
       />
     </div>
+
+    {/* Overlays outside game-container */}
+    <DailyCheckinOverlay onComplete={(isGood) => {
+      if (!isGood) {
+        setStats(prev => ({ ...prev, attention: 100 }));
+        showMessage("Aww, come here... let me cuddle you until you feel better 🥺💗", 6000);
+        setIsCuddling(true);
+        setTimeout(() => setIsCuddling(false), 5000);
+      } else {
+        showMessage("Yay! I'm so glad you had a good day! 🥰", 4000);
+      }
+    }} />
+    <SurpriseEvent onCollect={() => {
+      setStats({ hunger: 100, attention: 100, energy: 100 });
+      showMessage("A care package! You're the best! 🎁✨", 5000);
+    }} />
+    </>
   );
 }
 

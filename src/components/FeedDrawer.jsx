@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const foods = [
   { emoji: '🧋', name: 'Boba' },
@@ -9,79 +9,91 @@ const foods = [
 
 const FeedDrawer = ({ isOpen, onClose, onFeed, onDragStateChange }) => {
   const [drag, setDrag] = useState({ isDragging: false, x: 0, y: 0, food: '' });
+  const offsetRef = useRef({ x: 0, y: 0 });
 
   if (!isOpen && !drag.isDragging) return null;
 
+  const checkOverPet = (clientX, clientY) => {
+    const petElement = document.querySelector('.character');
+    if (!petElement) return false;
+    const rect = petElement.getBoundingClientRect();
+    // Use a generous hit zone (2x the element size) for easier feeding
+    const padding = 30;
+    return (
+      clientX >= rect.left - padding &&
+      clientX <= rect.right + padding &&
+      clientY >= rect.top - padding &&
+      clientY <= rect.bottom + padding
+    );
+  };
+
+  const setGlow = (show) => {
+    const glowElement = document.querySelector('.character-target-glow');
+    if (glowElement) glowElement.style.opacity = show ? '1' : '0';
+  };
+
+  // --- Touch handlers ---
   const handleTouchStart = (food, e) => {
+    e.preventDefault();
     const touch = e.touches[0];
-    setDrag({
-      isDragging: true,
-      x: touch.clientX,
-      y: touch.clientY,
-      food: food.emoji
-    });
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    // Calculate where within the card the user touched
+    offsetRef.current = {
+      x: touch.clientX - (cardRect.left + cardRect.width / 2),
+      y: touch.clientY - (cardRect.top + cardRect.height / 2),
+    };
+    setDrag({ isDragging: true, x: touch.clientX, y: touch.clientY, food: food.emoji });
     onDragStateChange(true);
   };
 
   const handleTouchMove = (e) => {
     if (!drag.isDragging) return;
+    e.preventDefault();
     const touch = e.touches[0];
-    setDrag(prev => ({
-      ...prev,
-      x: touch.clientX,
-      y: touch.clientY
-    }));
-
-    // Check collision with pet
-    const petElement = document.querySelector('.character');
-    if (petElement) {
-      const rect = petElement.getBoundingClientRect();
-      const isOverPet = 
-        touch.clientX >= rect.left && 
-        touch.clientX <= rect.right && 
-        touch.clientY >= rect.top && 
-        touch.clientY <= rect.bottom;
-      
-      const glowElement = document.querySelector('.character-target-glow');
-      if (glowElement) {
-        glowElement.style.opacity = isOverPet ? '1' : '0';
-      }
-    }
+    setDrag(prev => ({ ...prev, x: touch.clientX, y: touch.clientY }));
+    setGlow(checkOverPet(touch.clientX, touch.clientY));
   };
 
   const handleTouchEnd = (e) => {
     if (!drag.isDragging) return;
-    
-    const petElement = document.querySelector('.character');
-    let fed = false;
-
-    if (petElement) {
-      const rect = petElement.getBoundingClientRect();
-      const clientX = drag.x;
-      const clientY = drag.y;
-
-      const isOverPet = 
-        clientX >= rect.left && 
-        clientX <= rect.right && 
-        clientY >= rect.top && 
-        clientY <= rect.bottom;
-
-      if (isOverPet) {
-        onFeed(drag.food);
-        fed = true;
-      }
+    const fed = checkOverPet(drag.x, drag.y);
+    setGlow(false);
+    if (fed) {
+      onFeed(drag.food);
     }
-
-    const glowElement = document.querySelector('.character-target-glow');
-    if (glowElement) {
-      glowElement.style.opacity = '0';
-    }
-
     setDrag({ isDragging: false, x: 0, y: 0, food: '' });
     onDragStateChange(false);
-    if (fed) {
-      onClose();
-    }
+    if (fed) onClose();
+  };
+
+  // --- Mouse handlers ---
+  const handleMouseDown = (food, e) => {
+    e.preventDefault();
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    offsetRef.current = {
+      x: e.clientX - (cardRect.left + cardRect.width / 2),
+      y: e.clientY - (cardRect.top + cardRect.height / 2),
+    };
+
+    const startDrag = (moveEvent) => {
+      setDrag({ isDragging: true, x: moveEvent.clientX, y: moveEvent.clientY, food: food.emoji });
+      onDragStateChange(true);
+      setGlow(checkOverPet(moveEvent.clientX, moveEvent.clientY));
+    };
+
+    const endDrag = (upEvent) => {
+      document.removeEventListener('mousemove', startDrag);
+      document.removeEventListener('mouseup', endDrag);
+      const fed = checkOverPet(upEvent.clientX, upEvent.clientY);
+      setGlow(false);
+      if (fed) onFeed(food.emoji);
+      setDrag({ isDragging: false, x: 0, y: 0, food: '' });
+      onDragStateChange(false);
+      if (fed) onClose();
+    };
+
+    document.addEventListener('mousemove', startDrag);
+    document.addEventListener('mouseup', endDrag);
   };
 
   return (
@@ -102,58 +114,7 @@ const FeedDrawer = ({ isOpen, onClose, onFeed, onDragStateChange }) => {
               onTouchStart={(e) => handleTouchStart(food, e)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              onMouseDown={(e) => {
-                const moveHandler = (moveEvent) => {
-                  setDrag({
-                    isDragging: true,
-                    x: moveEvent.clientX,
-                    y: moveEvent.clientY,
-                    food: food.emoji
-                  });
-                  onDragStateChange(true);
-                  
-                  const petElement = document.querySelector('.character');
-                  if (petElement) {
-                    const rect = petElement.getBoundingClientRect();
-                    const isOver = 
-                      moveEvent.clientX >= rect.left && 
-                      moveEvent.clientX <= rect.right && 
-                      moveEvent.clientY >= rect.top && 
-                      moveEvent.clientY <= rect.bottom;
-                    const glow = document.querySelector('.character-target-glow');
-                    if (glow) glow.style.opacity = isOver ? '1' : '0';
-                  }
-                };
-                
-                const upHandler = (upEvent) => {
-                  document.removeEventListener('mousemove', moveHandler);
-                  document.removeEventListener('mouseup', upHandler);
-                  
-                  const petElement = document.querySelector('.character');
-                  let fed = false;
-                  if (petElement) {
-                    const rect = petElement.getBoundingClientRect();
-                    const isOver = 
-                      upEvent.clientX >= rect.left && 
-                      upEvent.clientX <= rect.right && 
-                      upEvent.clientY >= rect.top && 
-                      upEvent.clientY <= rect.bottom;
-                    if (isOver) {
-                      onFeed(food.emoji);
-                      fed = true;
-                    }
-                  }
-                  const glow = document.querySelector('.character-target-glow');
-                  if (glow) glow.style.opacity = '0';
-                  
-                  setDrag({ isDragging: false, x: 0, y: 0, food: '' });
-                  onDragStateChange(false);
-                  if (fed) onClose();
-                };
-                
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', upHandler);
-              }}
+              onMouseDown={(e) => handleMouseDown(food, e)}
             >
               <span className="food-emoji">{food.emoji}</span>
               <span className="food-name">{food.name}</span>
@@ -167,7 +128,7 @@ const FeedDrawer = ({ isOpen, onClose, onFeed, onDragStateChange }) => {
           className="drag-clone"
           style={{ 
             left: `${drag.x}px`, 
-            top: `${drag.y}px` 
+            top: `${drag.y}px`,
           }}
         >
           {drag.food}

@@ -24,35 +24,35 @@ const CallOverlay = ({ isActive, onClose }) => {
     }
   }, [isActive]);
 
-  // Call timer and dialogue triggers
+  // Call timer
   useEffect(() => {
     if (callState !== 'connected') return;
 
     const timer = setInterval(() => {
-      setSeconds((prev) => {
-        const nextSec = prev + 1;
-        
-        // Check if there's dialogue to append at this second
-        const dialogItem = boyfriendDialogues.find(d => d.time === nextSec);
-        if (dialogItem) {
-          setDialogue(prevDlg => [...prevDlg, dialogItem]);
-        }
-        
-        // Auto hang up after the conversation ends (at 23 seconds)
-        if (nextSec >= 23) {
-          clearInterval(timer);
-          setCallState('ended');
-          setTimeout(() => {
-            onClose();
-          }, 1500);
-        }
-
-        return nextSec;
-      });
+      setSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [callState, onClose]);
+  }, [callState]);
+
+  // Dialogue triggers
+  useEffect(() => {
+    if (callState !== 'connected') return;
+
+    const dialogItem = boyfriendDialogues.find(d => d.time === seconds);
+    if (dialogItem) {
+      setDialogue(prevDlg => [...prevDlg, dialogItem]);
+    }
+  }, [seconds, callState]);
+
+  // Auto hang up after the conversation ends (at 23 seconds)
+  useEffect(() => {
+    if (callState !== 'connected' || seconds < 23) return;
+
+    setCallState('ended');
+    const timeout = setTimeout(() => onClose(), 1500);
+    return () => clearTimeout(timeout);
+  }, [seconds, callState, onClose]);
 
   // Scroll to bottom of chat log when dialogue updates
   useEffect(() => {
@@ -71,8 +71,6 @@ const CallOverlay = ({ isActive, onClose }) => {
 
   const handleAnswer = () => {
     setCallState('connected');
-    // Start with the first dialog immediately
-    setDialogue([boyfriendDialogues[0]]);
   };
 
   const handleDecline = () => {
