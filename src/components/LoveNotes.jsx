@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { pollLiveNotes, getLiveNotesState, markLiveNotesSeen, getUnreadLiveNoteCount } from '../utils/liveNotes';
 
 // Pre-written notes from him — add/edit freely, they unlock one per day.
 const notesFromHim = [
@@ -47,29 +48,44 @@ export const maybeUnlockDailyNote = () => {
 
 export const getUnreadNoteCount = () => {
   const s = loadNotesState();
-  return Math.max(0, s.unlocked - s.seen);
+  return Math.max(0, s.unlocked - s.seen) + getUnreadLiveNoteCount();
 };
 
-const LoveNotes = ({ isOpen, onClose, ntfyTopic }) => {
+const LoveNotes = ({ isOpen, onClose, ntfyTopic, notesTopic }) => {
   const [tab, setTab] = useState('from-him');
   const [state, setState] = useState(loadNotesState);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [liveState, setLiveState] = useState(getLiveNotesState);
 
-  // Mark unlocked notes as "seen" once she actually opens that tab
+  // Poll for anything sent live from his end whenever the modal opens
   useEffect(() => {
-    if (isOpen && tab === 'from-him' && state.seen < state.unlocked) {
-      const next = { ...state, seen: state.unlocked };
-      setState(next);
-      saveNotesState(next);
+    if (isOpen && notesTopic) {
+      pollLiveNotes(notesTopic).then(setLiveState);
+    }
+  }, [isOpen, notesTopic]);
+
+  // Mark unlocked notes (both the daily-unlock ones and live ones) as
+  // "seen" once she actually opens the "from him" tab
+  useEffect(() => {
+    if (isOpen && tab === 'from-him') {
+      if (state.seen < state.unlocked) {
+        const next = { ...state, seen: state.unlocked };
+        setState(next);
+        saveNotesState(next);
+      }
+      if (liveState.seen < liveState.notes.length) {
+        setLiveState(markLiveNotesSeen());
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, tab]);
+  }, [isOpen, tab, liveState.notes.length]);
 
   if (!isOpen) return null;
 
   const unlockedNotes = notesFromHim.slice(0, state.unlocked);
+  const liveNotes = liveState.notes.slice().reverse(); // newest first
 
   const handleSend = async () => {
     const text = draft.trim();
@@ -117,6 +133,16 @@ const LoveNotes = ({ isOpen, onClose, ntfyTopic }) => {
 
         {tab === 'from-him' ? (
           <div className="notes-list">
+            {liveNotes.length > 0 && (
+              <>
+                <p className="notes-hint notes-hint-live">Just now 💌</p>
+                {liveNotes.map((note) => (
+                  <div key={note.id} className="note-bubble note-bubble-live">
+                    {note.text}
+                  </div>
+                ))}
+              </>
+            )}
             {unlockedNotes
               .slice()
               .reverse()
