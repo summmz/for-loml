@@ -1249,6 +1249,7 @@ body.theme-morning {
         radial-gradient(ellipse at 15% 10%, rgba(255, 218, 175, 0.9), transparent 55%),
         radial-gradient(ellipse at 85% 15%, rgba(255, 205, 215, 0.8), transparent 55%),
         linear-gradient(165deg, #fff8f0 0%, #ffeeda 45%, #ffd9e0 100%);
+    background-attachment: fixed;
 }
 
 body.theme-afternoon {
@@ -1258,6 +1259,7 @@ body.theme-afternoon {
         radial-gradient(ellipse at 12% 12%, rgba(158, 214, 255, 0.85), transparent 55%),
         radial-gradient(ellipse at 88% 18%, rgba(178, 240, 230, 0.8), transparent 55%),
         linear-gradient(165deg, #eaf6ff 0%, #d8eeff 45%, #e6e2ff 100%);
+    background-attachment: fixed;
 }
 
 body.theme-evening {
@@ -1267,6 +1269,7 @@ body.theme-evening {
         radial-gradient(ellipse at 20% 25%, rgba(255, 196, 178, 0.85), transparent 55%),
         radial-gradient(ellipse at 82% 20%, rgba(224, 178, 225, 0.8), transparent 55%),
         linear-gradient(165deg, #ffece2 0%, #ffd9d6 40%, #e9d0ef 100%);
+    background-attachment: fixed;
 }
 
 body.theme-night {
@@ -1281,6 +1284,7 @@ body.theme-night {
         radial-gradient(ellipse at 22% 15%, rgba(130, 118, 215, 0.16), transparent 55%),
         radial-gradient(ellipse at 80% 25%, rgba(168, 106, 205, 0.13), transparent 55%),
         linear-gradient(180deg, #151130 0%, #0d0a25 55%, #070614 100%);
+    background-attachment: fixed;
 }
 
 /* Slow drifting aurora for subtle, calming motion — tinted per theme above */
