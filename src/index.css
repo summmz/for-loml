@@ -751,7 +751,26 @@ header h1 {
     }
     
     header h1 {
-        font-size: 1.6rem;
+        font-size: 1.5rem;
+    }
+
+    .header-top h1 {
+        padding: 0 4px;
+    }
+
+    .header-actions {
+        gap: 8px;
+    }
+
+    .header-actions .settings-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.05rem;
+    }
+
+    .weather-chip {
+        font-size: 0.85rem;
+        padding: 6px 11px;
     }
 
     .character-display {
@@ -1429,20 +1448,39 @@ body::after {
 /* ==========================================================================
    Customize / Games / Goodnight overlays
    ========================================================================== */
-.header-top {
+/* header-bar sits above the title in normal flow — it always claims its own
+   row, so the weather chip / action buttons can never overlap the title text
+   no matter how long the name is or whether it wraps to two lines */
+header {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.header-bar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.header-top {
+    display: flex;
     justify-content: center;
-    gap: 12px;
+    align-items: center;
+}
+
+.header-top h1 {
+    padding: 0 6px;
 }
 
 .settings-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    font-size: 1rem;
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
     color: #fff;
     cursor: pointer;
     display: flex;
@@ -1455,6 +1493,54 @@ body::after {
 .settings-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(45deg);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notes-trigger-btn {
+    position: relative;
+}
+
+.notes-trigger-btn:hover {
+    transform: none; /* don't inherit the settings gear's rotate-on-hover */
+}
+
+.notif-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ec4899;
+    border: 2px solid rgba(15, 23, 42, 0.9);
+    box-shadow: 0 0 8px rgba(236, 72, 153, 0.8);
+}
+
+.header-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.weather-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 8px 14px;
+    white-space: nowrap;
 }
 
 .nini-modal-overlay {
@@ -1603,4 +1689,129 @@ body::after {
 
 .modal-close-btn:hover {
     background: rgba(255, 255, 255, 0.16);
+}
+
+.notif-btn {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.notif-btn:disabled {
+    opacity: 0.65;
+    cursor: default;
+}
+
+/* Love Notes overlay */
+.notes-card {
+    max-width: 380px;
+}
+
+.notes-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 16px;
+}
+
+.notes-tab {
+    flex: 1;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.notes-tab.active {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+}
+
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.note-bubble {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: left;
+}
+
+.note-bubble.sent {
+    background: rgba(168, 85, 247, 0.12);
+    border-color: rgba(168, 85, 247, 0.25);
+}
+
+.note-bubble-live {
+    background: rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.3);
+    box-shadow: 0 0 16px rgba(236, 72, 153, 0.12);
+}
+
+.notes-hint {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+    margin-top: 4px;
+}
+
+.notes-hint-live {
+    color: #ec4899;
+    font-weight: 600;
+    text-align: left;
+    margin-top: 0;
+}
+
+.notes-compose {
+    text-align: left;
+}
+
+.notes-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+    resize: none;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.notes-textarea:focus {
+    border-color: rgba(168, 85, 247, 0.7);
+}
+
+.notes-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.notes-sent-history {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
 }

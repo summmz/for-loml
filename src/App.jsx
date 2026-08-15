@@ -11,6 +11,10 @@ import MusicPlayer from './components/MusicPlayer';
 import DailyCheckinOverlay from './components/DailyCheckinOverlay';
 import SurpriseEvent from './components/SurpriseEvent';
 import CustomizeOverlay from './components/CustomizeOverlay';
+import LoveNotes, { maybeUnlockDailyNote, getUnreadNoteCount } from './components/LoveNotes';
+import { pollLiveNotes } from './utils/liveNotes';
+import { useWeather } from './hooks/useWeather';
+import { pushNotification } from './utils/notifications';
 import './index.css';
 // Optional: reference texts (chat_history.txt is gitignored — works without it)
 const chatStyleFiles = import.meta.glob('./assets/chat_history.txt', { query: '?raw', import: 'default', eager: true });
@@ -28,6 +32,12 @@ const loadSettings = () => {
 };
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || 'missing' });
+
+// Dedicated topic for notes sent from his end -> her app (see src/utils/liveNotes.js).
+// Deliberately separate from VITE_NTFY_TOPIC (her -> him) so the two directions
+// never cross. Set VITE_NTFY_NOTES_TOPIC in your .env to something private —
+// anyone who knows this string can publish a note that shows up as "from him".
+const notesTopic = import.meta.env.VITE_NTFY_NOTES_TOPIC || 'nini-notes-4k2p-set-your-own';
 
 
 const flirtMessages = [
@@ -408,6 +418,48 @@ function App() {
   const [isDraggingFood, setIsDraggingFood] = useState(false);
   const [settings, setSettings] = useState(loadSettings);
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [unreadNotes, setUnreadNotes] = useState(0);
+  const weather = useWeather();
+  const weatherRef = useRef(null);
+  const settingsRef = useRef(settings);
+  const lastIdlePushRef = useRef(0);
+
+  useEffect(() => { weatherRef.current = weather; }, [weather]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+
+  // Unlock today's note (if a new day has started) once on load
+  useEffect(() => {
+    maybeUnlockDailyNote();
+    setUnreadNotes(getUnreadNoteCount());
+  }, []);
+
+  // Poll for notes sent live from his end (see src/utils/liveNotes.js) so
+  // the 💌 badge lights up even before she opens the panel. Every 2 min is
+  // frequent enough to feel real-time without hammering ntfy.sh.
+  useEffect(() => {
+    if (!notesTopic) return;
+    let cancelled = false;
+    const check = () => {
+      pollLiveNotes(notesTopic).then(() => {
+        if (!cancelled) setUnreadNotes(getUnreadNoteCount());
+      });
+    };
+    check();
+    const interval = setInterval(check, 2 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const openNotes = () => {
+    setIsNotesOpen(true);
+  };
+  const closeNotes = () => {
+    setIsNotesOpen(false);
+    setUnreadNotes(getUnreadNoteCount());
+  };
 
   const saveSettings = (next) => {
     setSettings(next);
@@ -451,7 +503,10 @@ function App() {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
       if (isFlirting || generatingRef.current) return;
-      const mood = currentMoodRef.current;
+      // Weather only nudges the tone when stats aren't already driving a strong mood
+      const baseMood = currentMoodRef.current;
+      const w = weatherRef.current;
+      const mood = (baseMood === 'happy' && w?.mood && w.mood !== 'happy') ? w.mood : baseMood;
       const pool = idleMessages[mood] || idleMessages.happy;
       let newIndex;
       do {
@@ -459,6 +514,17 @@ function App() {
       } while (newIndex === idleLastIndexRef.current && pool.length > 1);
       idleLastIndexRef.current = newIndex;
       showMessage(pool[newIndex], 5000);
+
+      // If she's backgrounded/switched tabs, also fire a real notification —
+      // but throttled, since this timer would otherwise fire every 10s.
+      if (document.hidden) {
+        const now = Date.now();
+        if (now - lastIdlePushRef.current > 5 * 60 * 1000) {
+          lastIdlePushRef.current = now;
+          pushNotification(`${settingsRef.current.name} 🤍`, pool[newIndex], { tag: 'nini-idle' });
+        }
+      }
+
       // Keep sending mood-based messages every 10s while idle
       resetIdleTimer();
     }, 10000);
@@ -583,6 +649,9 @@ function App() {
         if (newStats.hunger === 0 && newStats.attention === 0 && newStats.energy === 0) {
           if (!isMessageVisible) {
              showMessage("I miss you... 😭", 5000);
+             if (document.hidden) {
+               pushNotification(`${settingsRef.current.name} 🤍`, "I miss you... 😭", { tag: 'nini-miss-you' });
+             }
           }
         }
         return newStats;
@@ -750,6 +819,7 @@ CRITICAL BEHAVIORAL RULES:
 7. ACTUALLY REPLY to her current message. Do not just throw out random phrases. Filter a logical reply through his specific vocabulary.
 8. Current mood: ${moodDescriptions[mood] || moodDescriptions.happy}.
 9. He ALWAYS calls the girl by her pet name "${settings.nickname}" — never by her real name. Use it often in replies.
+${weather ? `10. Weather where she is right now: ${weather.tone}. You can mention it if it naturally fits, but don't force it into every message.` : ''}
 
 Reference texts (match this exact vibe):
 ---
@@ -804,6 +874,9 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
 
       // Show reply in speech bubble + trigger animation
       showMessage(reply, 7000);
+      if (document.hidden) {
+        pushNotification(`${settings.name} 🤍`, reply, { tag: 'nini-chat' });
+      }
       triggerAnimation();
       // Briefly show love/flirty face during reply
       if (!isFlirting) {
@@ -879,11 +952,26 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
     <>
     <div className="game-container">
       <header>
+        <div className="header-bar">
+          {weather ? (
+            <span className="weather-chip" title={weather.label}>
+              {weather.icon} {Math.round(weather.tempC)}°
+            </span>
+          ) : <span />}
+          <div className="header-actions">
+            <button className="settings-btn notes-trigger-btn" onClick={openNotes} title="Notes">
+              💌
+              {unreadNotes > 0 && <span className="notif-dot" />}
+            </button>
+            <button className="settings-btn" onClick={() => setIsCustomizeOpen(true)} title="Customize">⚙️</button>
+          </div>
+        </div>
         <div className="header-top">
           <h1>Take Care of {settings.name} 🤍</h1>
-          <button className="settings-btn" onClick={() => setIsCustomizeOpen(true)} title="Customize">⚙️</button>
         </div>
-        <p className="subtitle">Keep the stats high or I'll get sad.</p>
+        <div className="header-meta">
+          <p className="subtitle">Keep the stats high or I'll get sad.</p>
+        </div>
       </header>
       
       <Character 
@@ -949,6 +1037,13 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
       settings={settings}
       onSave={saveSettings}
       onClose={() => setIsCustomizeOpen(false)}
+    />
+
+    <LoveNotes
+      isOpen={isNotesOpen}
+      onClose={closeNotes}
+      ntfyTopic={import.meta.env.VITE_NTFY_TOPIC || 'nini-needs-u-7x9q'}
+      notesTopic={notesTopic}
     />
     </>
   );

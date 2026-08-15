@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  isNotificationSupported,
+} from '../utils/notifications';
 
 const avatarOptions = ['👦🏻', '👨🏽', '👨🏽‍🦱', '🐻', '🦊', '🐼', '🐥', '🌸', '💙', '💜', '🫂'];
 
@@ -6,12 +11,14 @@ const CustomizeOverlay = ({ isOpen, settings, onSave, onClose }) => {
   const [name, setName] = useState(settings.name);
   const [nickname, setNickname] = useState(settings.nickname);
   const [avatar, setAvatar] = useState(settings.avatar);
+  const [notifStatus, setNotifStatus] = useState(getNotificationPermission);
 
   useEffect(() => {
     if (isOpen) {
       setName(settings.name);
       setNickname(settings.nickname);
       setAvatar(settings.avatar);
+      setNotifStatus(getNotificationPermission());
     }
   }, [isOpen, settings]);
 
@@ -25,6 +32,18 @@ const CustomizeOverlay = ({ isOpen, settings, onSave, onClose }) => {
     });
     onClose();
   };
+
+  const handleEnableNotifications = async () => {
+    const result = await requestNotificationPermission();
+    setNotifStatus(result);
+  };
+
+  const notifLabel =
+    notifStatus === 'granted'
+      ? 'Notifications on 🔔'
+      : notifStatus === 'denied'
+      ? 'Blocked — enable in browser settings'
+      : 'Enable Notifications 🔔';
 
   return (
     <div className="nini-modal-overlay" onClick={onClose}>
@@ -62,6 +81,19 @@ const CustomizeOverlay = ({ isOpen, settings, onSave, onClose }) => {
             </button>
           ))}
         </div>
+
+        {isNotificationSupported() && (
+          <>
+            <label className="field-label">Notifications</label>
+            <button
+              className="modal-close-btn notif-btn"
+              onClick={handleEnableNotifications}
+              disabled={notifStatus === 'granted' || notifStatus === 'denied'}
+            >
+              {notifLabel}
+            </button>
+          </>
+        )}
 
         <button className="modal-save-btn" onClick={handleSave}>Save 💖</button>
       </div>

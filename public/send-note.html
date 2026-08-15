@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Send Nini a note</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Outfit, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #241a3a, #0a0a0c 70%);
+    color: #fff;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 28px;
+    padding: 32px 26px;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 6px; }
+  p.sub { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0 0 22px; }
+  label { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 6px; font-weight: 600; }
+  input, textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 12px 14px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+  }
+  input:focus, textarea:focus { outline: none; border-color: rgba(236,72,153,0.6); }
+  .field { margin-bottom: 16px; }
+  button {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #ec4899, #a855f7);
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:not(:disabled):active { transform: scale(0.98); }
+  .status { margin-top: 14px; font-size: 0.85rem; text-align: center; min-height: 1.2em; }
+  .status.ok { color: #4ade80; }
+  .status.err { color: #f87171; }
+  details { margin-top: 22px; }
+  summary { font-size: 0.78rem; color: rgba(255,255,255,0.45); cursor: pointer; }
+  details p { font-size: 0.78rem; color: rgba(255,255,255,0.5); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Leave her a note 💌</h1>
+    <p class="sub">Sends straight into her app — shows up in the Notes panel next time it polls.</p>
+
+    <div class="field">
+      <label for="topic">Topic (set once, saved on this device)</label>
+      <input id="topic" type="text" placeholder="the VITE_NTFY_NOTES_TOPIC from your .env" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label for="note">Note</label>
+      <textarea id="note" rows="4" maxlength="300" placeholder="say something for her to find..."></textarea>
+    </div>
+
+    <button id="sendBtn">Send 💌</button>
+    <div class="status" id="status"></div>
+
+    <details>
+      <summary>How this works</summary>
+      <p>
+        This is a standalone page — it doesn't need the app's dev server or a rebuild.
+        It posts your note to a private ntfy.sh topic; her app polls that same topic
+        every couple minutes and shows anything new in the Notes panel.
+        Use the same topic string you set as <code>VITE_NTFY_NOTES_TOPIC</code> in
+        the app's <code>.env</code>. Keep the topic name private — anyone who knows
+        it can publish a note that shows up as if it's from you.
+      </p>
+    </details>
+  </div>
+
+  <script>
+    const topicEl = document.getElementById('topic');
+    const noteEl = document.getElementById('note');
+    const btnEl = document.getElementById('sendBtn');
+    const statusEl = document.getElementById('status');
+
+    // Remember the topic on this device so it's not retyped every time
+    topicEl.value = localStorage.getItem('nini_send_note_topic') || '';
+    topicEl.addEventListener('input', () => {
+      localStorage.setItem('nini_send_note_topic', topicEl.value.trim());
+    });
+
+    const setStatus = (msg, cls) => {
+      statusEl.textContent = msg;
+      statusEl.className = 'status' + (cls ? ' ' + cls : '');
+    };
+
+    btnEl.addEventListener('click', async () => {
+      const topic = topicEl.value.trim();
+      const text = noteEl.value.trim();
+      if (!topic) return setStatus('Add your topic first.', 'err');
+      if (!text) return setStatus('Write something first.', 'err');
+
+      btnEl.disabled = true;
+      setStatus('Sending...');
+      try {
+        const res = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          body: text,
+        });
+        if (!res.ok) throw new Error('status ' + res.status);
+        setStatus('Sent 💌', 'ok');
+        noteEl.value = '';
+      } catch (err) {
+        setStatus("Couldn't send — check the topic and your connection.", 'err');
+      } finally {
+        btnEl.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
