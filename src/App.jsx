@@ -10,10 +10,22 @@ import FeedDrawer from './components/FeedDrawer';
 import MusicPlayer from './components/MusicPlayer';
 import DailyCheckinOverlay from './components/DailyCheckinOverlay';
 import SurpriseEvent from './components/SurpriseEvent';
+import CustomizeOverlay from './components/CustomizeOverlay';
 import './index.css';
 // Optional: reference texts (chat_history.txt is gitignored — works without it)
 const chatStyleFiles = import.meta.glob('./assets/chat_history.txt', { query: '?raw', import: 'default', eager: true });
 const chatStyle = chatStyleFiles[Object.keys(chatStyleFiles)[0]] || '';
+
+const defaultSettings = { name: 'Nini', nickname: 'jaanu', avatar: '👦🏻' };
+
+const loadSettings = () => {
+  try {
+    const raw = localStorage.getItem('nini_settings');
+    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
+  } catch {
+    return defaultSettings;
+  }
+};
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || 'missing' });
 
@@ -239,7 +251,8 @@ const idleMessages = {
 };
 
 const faces = {
-  happy: '🥺',
+  happy: '😚',
+  feed: '😋',
   sad: '😭',
   neutral: '😐',
   sleepy: '😴',
@@ -373,6 +386,7 @@ function App() {
   const [touchAnim, setTouchAnim] = useState(null);
   const [burstKey, setBurstKey] = useState(0);
   const [actionFace, setActionFace] = useState(null);
+  const [moodOverride, setMoodOverride] = useState(null);
   
   const messageTimeoutRef = useRef(null);
   const flirtLastIndexRef = useRef(-1);
@@ -387,12 +401,18 @@ function App() {
   const generatingRef = useRef(false);
   const bounceTimeoutRef = useRef(null);
   const actionFaceTimeoutRef = useRef(null);
-  const moodOverrideRef = useRef(null);
   const [isThinking, setIsThinking] = useState(false);
   const [isCuddling, setIsCuddling] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
   const [isFeedOpen, setIsFeedOpen] = useState(false);
   const [isDraggingFood, setIsDraggingFood] = useState(false);
+  const [settings, setSettings] = useState(loadSettings);
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+
+  const saveSettings = (next) => {
+    setSettings(next);
+    try { localStorage.setItem('nini_settings', JSON.stringify(next)); } catch {}
+  };
 
   // Derive normal face based on stats, also track current mood
   useEffect(() => {
@@ -403,9 +423,9 @@ function App() {
     if (isFlirting) return;
 
     // Keep the last action's mood/face for a few seconds after pressing a button
-    if (moodOverrideRef.current && Date.now() < moodOverrideRef.current.expiresAt) {
-      setCharacterFace(moodOverrideRef.current.face);
-      currentMoodRef.current = moodOverrideRef.current.mood;
+    if (moodOverride) {
+      setCharacterFace(moodOverride.face);
+      currentMoodRef.current = moodOverride.mood;
       return;
     }
 
@@ -424,7 +444,7 @@ function App() {
       mood = 'happy';
     }
     currentMoodRef.current = mood;
-  }, [stats, isFlirting, actionFace]);
+  }, [stats, isFlirting, actionFace, moodOverride]);
 
   // Idle timer — shows a mood-appropriate message after 10s of no interaction
   const resetIdleTimer = () => {
@@ -472,9 +492,20 @@ function App() {
       }
     };
     
+    // Refresh right away so the background is always correct the moment the app is looked at,
+    // since browsers throttle timers in background tabs.
+    const onVisible = () => {
+      if (!document.hidden) updateTheme();
+    };
     updateTheme();
     const interval = setInterval(updateTheme, 60000); // Check every minute
-    return () => clearInterval(interval);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, []);
 
 
@@ -517,9 +548,12 @@ function App() {
     
     const showActionFace = (face, mood) => {
       setActionFace(face);
-      moodOverrideRef.current = { mood, face, expiresAt: Date.now() + 3000 };
+      setMoodOverride({ mood, face });
       if (actionFaceTimeoutRef.current) clearTimeout(actionFaceTimeoutRef.current);
-      actionFaceTimeoutRef.current = setTimeout(() => setActionFace(null), 2500);
+      actionFaceTimeoutRef.current = setTimeout(() => {
+        setActionFace(null);
+        setMoodOverride(null);
+      }, 3000);
     };
 
     setStats(prev => {
@@ -530,7 +564,7 @@ function App() {
         showActionFace(faces.flirty, 'flirty');
       } else {
         showMessage(`Yummy ${foodEmoji} 🍕`);
-        showActionFace(faces.happy, 'happy');
+        showActionFace(faces.feed, 'happy');
       }
       return updated;
     });
@@ -637,9 +671,12 @@ function App() {
 
     const showActionFace = (face, mood) => {
       setActionFace(face);
-      moodOverrideRef.current = { mood, face, expiresAt: Date.now() + 3000 };
+      setMoodOverride({ mood, face });
       if (actionFaceTimeoutRef.current) clearTimeout(actionFaceTimeoutRef.current);
-      actionFaceTimeoutRef.current = setTimeout(() => setActionFace(null), 2500);
+      actionFaceTimeoutRef.current = setTimeout(() => {
+        setActionFace(null);
+        setMoodOverride(null);
+      }, 3000);
     };
 
     setStats(prev => {
@@ -651,7 +688,7 @@ function App() {
           showActionFace(faces.flirty, 'flirty');
         } else {
           showMessage("Yummy 🍕");
-          showActionFace(faces.happy, 'happy');
+          showActionFace(faces.feed, 'happy');
         }
       } else if (type === 'pat') {
         updated.attention = Math.min(100, prev.attention + 15);
@@ -712,6 +749,7 @@ CRITICAL BEHAVIORAL RULES:
 6. If she says something sweet, spam "💋" or "😭".
 7. ACTUALLY REPLY to her current message. Do not just throw out random phrases. Filter a logical reply through his specific vocabulary.
 8. Current mood: ${moodDescriptions[mood] || moodDescriptions.happy}.
+9. He ALWAYS calls the girl by her pet name "${settings.nickname}" — never by her real name. Use it often in replies.
 
 Reference texts (match this exact vibe):
 ---
@@ -841,7 +879,10 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
     <>
     <div className="game-container">
       <header>
-        <h1>Take Care of Nini 🤍</h1>
+        <div className="header-top">
+          <h1>Take Care of {settings.name} 🤍</h1>
+          <button className="settings-btn" onClick={() => setIsCustomizeOpen(true)} title="Customize">⚙️</button>
+        </div>
         <p className="subtitle">Keep the stats high or I'll get sad.</p>
       </header>
       
@@ -866,13 +907,19 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
         onCuddleStart={() => setIsCuddling(true)}
         onCuddleEnd={() => setIsCuddling(false)}
         onCallClick={() => setIsCallActive(true)}
+        callName={settings.name}
         isCuddling={isCuddling}
       />
       <ChatInput onSend={handleChat} isThinking={isThinking} />
       <MusicPlayer />
 
       <CuddleOverlay isActive={isCuddling} />
-      <CallOverlay isActive={isCallActive} onClose={() => setIsCallActive(false)} />
+      <CallOverlay 
+        isActive={isCallActive} 
+        onClose={() => setIsCallActive(false)}
+        name={`${settings.name} 🤍`}
+        avatar={settings.avatar}
+      />
       <FeedDrawer 
         isOpen={isFeedOpen} 
         onClose={() => setIsFeedOpen(false)} 
@@ -896,6 +943,13 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
       setStats({ hunger: 100, attention: 100, energy: 100 });
       showMessage("A care package! You're the best! 🎁✨", 5000);
     }} />
+
+    <CustomizeOverlay 
+      isOpen={isCustomizeOpen} 
+      settings={settings}
+      onSave={saveSettings}
+      onClose={() => setIsCustomizeOpen(false)}
+    />
     </>
   );
 }

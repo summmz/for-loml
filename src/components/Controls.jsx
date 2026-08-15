@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-const Controls = ({ onAction, onFlirt, onNeedYou, onFeedClick, onCuddleStart, onCuddleEnd, onCallClick, isCuddling }) => {
+const Controls = ({ onAction, onFlirt, onNeedYou, onFeedClick, onCuddleStart, onCuddleEnd, onCallClick, callName, isCuddling }) => {
   const cuddleTimerRef = useRef(null);
   const cuddleActiveRef = useRef(false);
 
@@ -34,7 +34,7 @@ const Controls = ({ onAction, onFlirt, onNeedYou, onFeedClick, onCuddleStart, on
 
       <div className="flirt-section" style={{ display: 'flex', gap: '10px', justifyContent: 'center', width: '100%' }}>
         <button onClick={onFlirt} className="glow-btn">Do Not Press</button>
-        <button onClick={onCallClick} className="glow-btn" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}>📞 Call Nini</button>
+        <button onClick={onCallClick} className="glow-btn" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}>📞 Call {callName}</button>
       </div>
 
       <div className="need-section" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', width: '100%' }}>

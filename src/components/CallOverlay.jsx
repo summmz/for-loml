@@ -9,7 +9,15 @@ const boyfriendDialogues = [
   { time: 19, text: "love you so much jaanu, good boy banke rahungaa 🫂 bye bye!", sender: 'boyfriend' }
 ];
 
-const CallOverlay = ({ isActive, onClose }) => {
+const CallOverlay = ({
+  isActive,
+  onClose,
+  dialogues = boyfriendDialogues,
+  hangUpAt = 23,
+  name = 'Nini 🤍',
+  avatar = '👦🏻',
+  incomingText = 'Incoming call...'
+}) => {
   const [callState, setCallState] = useState('ringing'); // 'ringing' | 'connected' | 'ended'
   const [seconds, setSeconds] = useState(0);
   const [dialogue, setDialogue] = useState([]);
@@ -39,20 +47,20 @@ const CallOverlay = ({ isActive, onClose }) => {
   useEffect(() => {
     if (callState !== 'connected') return;
 
-    const dialogItem = boyfriendDialogues.find(d => d.time === seconds);
+    const dialogItem = dialogues.find(d => d.time === seconds);
     if (dialogItem) {
       setDialogue(prevDlg => [...prevDlg, dialogItem]);
     }
-  }, [seconds, callState]);
+  }, [seconds, callState, dialogues]);
 
-  // Auto hang up after the conversation ends (at 23 seconds)
+  // Auto hang up after the conversation ends
   useEffect(() => {
-    if (callState !== 'connected' || seconds < 23) return;
+    if (callState !== 'connected' || seconds < hangUpAt) return;
 
     setCallState('ended');
     const timeout = setTimeout(() => onClose(), 1500);
     return () => clearTimeout(timeout);
-  }, [seconds, callState, onClose]);
+  }, [seconds, callState, hangUpAt, onClose]);
 
   // Scroll to bottom of chat log when dialogue updates
   useEffect(() => {
@@ -85,11 +93,11 @@ const CallOverlay = ({ isActive, onClose }) => {
       <div className="call-info">
         <div className="call-avatar-wrapper">
           {callState === 'ringing' && <div className="call-avatar-ring"></div>}
-          <div className="call-avatar">👦🏻</div>
+          <div className="call-avatar">{avatar}</div>
         </div>
-        <h2 className="call-name">Nini 🤍</h2>
+        <h2 className="call-name">{name}</h2>
         <p className="call-status">
-          {callState === 'ringing' && "Incoming call..."}
+          {callState === 'ringing' && incomingText}
           {callState === 'connected' && formatTime(seconds)}
           {callState === 'ended' && "Call ended"}
         </p>

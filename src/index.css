@@ -49,18 +49,8 @@ body {
 
 
 
-body::before {
-    content: '';
-    position: fixed;
-    width: 620px;
-    height: 620px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 70%);
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: -1;
-    pointer-events: none;
-}
+
+
 
 .game-container {
     background: rgba(15, 23, 42, 0.45); /* Dark slate glass for premium look & excellent contrast */
@@ -537,11 +527,6 @@ header h1 {
 
 /* Responsiveness media queries */
 @media (max-width: 480px) {
-    body::before {
-        width: 320px;
-        height: 320px;
-    }
-
     #root {
         display: flex;
         align-items: center;
@@ -731,11 +716,6 @@ header h1 {
 
 /* Responsiveness media queries */
 @media (max-width: 480px) {
-    body::before {
-        width: 320px;
-        height: 320px;
-    }
-
     #root {
         display: flex;
         align-items: center;
@@ -1254,45 +1234,50 @@ header h1 {
     top: 30%;
 }
 
-/* Time of Day Themes — soft dreamy mesh gradients */
+/* Time of Day Themes — soft dreamy mesh gradients.
+   Each theme also tints the drifting aurora so the whole background follows the time of day. */
 body.theme-morning {
+    --aurora-1: rgba(255, 214, 160, 0.14);
+    --aurora-2: rgba(255, 170, 200, 0.10);
     background:
-        radial-gradient(ellipse at 15% 10%, rgba(255, 218, 175, 0.95), transparent 55%),
-        radial-gradient(ellipse at 85% 15%, rgba(255, 205, 215, 0.85), transparent 55%),
-        radial-gradient(ellipse at 50% 100%, rgba(255, 238, 205, 0.9), transparent 60%),
+        radial-gradient(ellipse at 15% 10%, rgba(255, 218, 175, 0.9), transparent 55%),
+        radial-gradient(ellipse at 85% 15%, rgba(255, 205, 215, 0.8), transparent 55%),
         linear-gradient(165deg, #fff8f0 0%, #ffeeda 45%, #ffd9e0 100%);
 }
 
 body.theme-afternoon {
+    --aurora-1: rgba(150, 214, 255, 0.14);
+    --aurora-2: rgba(140, 190, 255, 0.10);
     background:
-        radial-gradient(ellipse at 12% 12%, rgba(158, 214, 255, 0.9), transparent 55%),
-        radial-gradient(ellipse at 88% 18%, rgba(178, 240, 230, 0.85), transparent 55%),
-        radial-gradient(ellipse at 50% 100%, rgba(210, 198, 255, 0.85), transparent 60%),
+        radial-gradient(ellipse at 12% 12%, rgba(158, 214, 255, 0.85), transparent 55%),
+        radial-gradient(ellipse at 88% 18%, rgba(178, 240, 230, 0.8), transparent 55%),
         linear-gradient(165deg, #eaf6ff 0%, #d8eeff 45%, #e6e2ff 100%);
 }
 
 body.theme-evening {
+    --aurora-1: rgba(255, 170, 185, 0.14);
+    --aurora-2: rgba(205, 150, 255, 0.10);
     background:
-        radial-gradient(ellipse at 20% 25%, rgba(255, 196, 178, 0.9), transparent 55%),
-        radial-gradient(ellipse at 82% 20%, rgba(224, 178, 225, 0.85), transparent 55%),
-        radial-gradient(ellipse at 50% 105%, rgba(167, 180, 255, 0.75), transparent 65%),
-        linear-gradient(165deg, #ffece2 0%, #ffd9d6 40%, #cdbcff 100%);
+        radial-gradient(ellipse at 20% 25%, rgba(255, 196, 178, 0.85), transparent 55%),
+        radial-gradient(ellipse at 82% 20%, rgba(224, 178, 225, 0.8), transparent 55%),
+        linear-gradient(165deg, #ffece2 0%, #ffd9d6 40%, #e9d0ef 100%);
 }
 
 body.theme-night {
+    --aurora-1: rgba(140, 130, 250, 0.07);
+    --aurora-2: rgba(105, 95, 220, 0.05);
     background-image:
-        radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.7), transparent),
-        radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(2px 2px at 40% 80%, rgba(255, 255, 255, 0.6), transparent),
-        radial-gradient(1px 1px at 85% 15%, rgba(255, 255, 255, 0.6), transparent),
-        radial-gradient(1.5px 1.5px at 10% 70%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(ellipse at 22% 15%, rgba(130, 118, 215, 0.4), transparent 55%),
-        radial-gradient(ellipse at 80% 25%, rgba(168, 106, 205, 0.32), transparent 55%),
-        radial-gradient(ellipse at 50% 105%, rgba(96, 78, 175, 0.45), transparent 60%),
-        linear-gradient(180deg, #19163a 0%, #100d29 55%, #0a081a 100%);
+        radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(2px 2px at 40% 80%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 85% 15%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 10% 70%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(ellipse at 22% 15%, rgba(130, 118, 215, 0.16), transparent 55%),
+        radial-gradient(ellipse at 80% 25%, rgba(168, 106, 205, 0.13), transparent 55%),
+        linear-gradient(180deg, #151130 0%, #0d0a25 55%, #070614 100%);
 }
 
-/* Slow drifting aurora for subtle, calming motion */
+/* Slow drifting aurora for subtle, calming motion — tinted per theme above */
 body::after {
     content: '';
     position: fixed;
@@ -1300,7 +1285,7 @@ body::after {
     left: -15%;
     width: 130vmax;
     height: 130vmax;
-    background: radial-gradient(circle at 35% 30%, rgba(255, 180, 220, 0.16) 0%, rgba(167, 139, 250, 0.13) 35%, rgba(0, 0, 0, 0) 65%);
+    background: radial-gradient(circle at 35% 30%, var(--aurora-1, rgba(255, 180, 220, 0.10)) 0%, var(--aurora-2, rgba(167, 139, 250, 0.08)) 35%, rgba(0, 0, 0, 0) 65%);
     z-index: -1;
     pointer-events: none;
     animation: aurora-drift 20s ease-in-out infinite alternate;
@@ -1429,4 +1414,183 @@ body::after {
 @keyframes pulse-package {
     0%, 100% { filter: drop-shadow(0 0 10px rgba(255,215,0,0.5)); }
     50% { filter: drop-shadow(0 0 25px rgba(255,215,0,1)); }
+}
+
+/* ==========================================================================
+   Customize / Games / Goodnight overlays
+   ========================================================================== */
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.settings-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.settings-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(45deg);
+}
+
+.nini-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 960;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.nini-modal-card {
+    background: rgba(26, 24, 40, 0.95);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-radius: 28px;
+    padding: 28px 24px;
+    text-align: center;
+    max-width: 360px;
+    width: 100%;
+    color: #fff;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.55);
+    animation: pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-height: 88vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.nini-modal-card h2 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+}
+
+.modal-sub {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 20px;
+}
+
+.field-label {
+    display: block;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 14px 0 6px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.field-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.field-input:focus {
+    border-color: rgba(168, 85, 247, 0.7);
+}
+
+.field-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 10px 0 4px;
+}
+
+.avatar-option {
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    font-size: 1.6rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.avatar-option:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.avatar-option.selected {
+    border-color: rgba(168, 85, 247, 0.9);
+    background: rgba(168, 85, 247, 0.25);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+}
+
+.modal-save-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.3);
+}
+
+.modal-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(168, 85, 247, 0.45);
+}
+
+.modal-save-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+}
+
+.modal-close-btn {
+    margin-top: 14px;
+    padding: 10px 22px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
 }
