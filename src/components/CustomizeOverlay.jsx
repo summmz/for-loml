@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const avatarOptions = ['👦🏻', '👨🏻', '🐻', '🦊', '🐼', '🐥', '🌸', '💙', '💜', '🫂'];
+const avatarOptions = ['👦🏻', '👨🏽', '👨🏽‍🦱', '🐻', '🦊', '🐼', '🐥', '🌸', '💙', '💜', '🫂'];
 
 const CustomizeOverlay = ({ isOpen, settings, onSave, onClose }) => {
   const [name, setName] = useState(settings.name);
