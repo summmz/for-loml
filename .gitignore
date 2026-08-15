@@ -13,6 +13,8 @@ dist-ssr
 *.local
 .env
 .env.*
+.venv-tts
+voice_samples/*.wav
 sumit_messages.txt
 chat_history.txt
 message_*.html

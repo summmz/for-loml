@@ -11,7 +11,9 @@ import MusicPlayer from './components/MusicPlayer';
 import DailyCheckinOverlay from './components/DailyCheckinOverlay';
 import SurpriseEvent from './components/SurpriseEvent';
 import './index.css';
-import chatStyle from './assets/chat_history.txt?raw';
+// Optional: reference texts (chat_history.txt is gitignored — works without it)
+const chatStyleFiles = import.meta.glob('./assets/chat_history.txt', { query: '?raw', import: 'default', eager: true });
+const chatStyle = chatStyleFiles[Object.keys(chatStyleFiles)[0]] || '';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || 'missing' });
 
@@ -569,6 +571,30 @@ function App() {
     }, duration);
   };
 
+  // Cloned-voice TTS: prefer the local Coqui XTTS server, fall back to
+  // the browser's built-in speechSynthesis if it's not running.
+  const speakNini = async (text) => {
+    const serverUrl = import.meta.env.VITE_TTS_SERVER || 'http://127.0.0.1:5001';
+    try {
+      const res = await fetch(
+        `${serverUrl}/tts?text=${encodeURIComponent(text)}&voice=nini.wav`,
+        { signal: AbortSignal.timeout(20000) }
+      );
+      if (!res.ok) throw new Error(`TTS server returned ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'hi-IN'; // Hint for Indian accent if available
+      utterance.pitch = 1.1; // Slightly higher pitch for cuteness
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const triggerAnimation = () => {
     setBounce(false);
     setTimeout(() => setBounce(true), 10);
@@ -735,11 +761,7 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
 
       // Feature 7: TTS Voice Response
       if (stats.attention > 80 && reply.length < 50) {
-        const utterance = new SpeechSynthesisUtterance(reply);
-        utterance.lang = 'hi-IN'; // Hint for Indian accent if available
-        utterance.pitch = 1.1; // Slightly higher pitch for cuteness
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+        speakNini(reply);
       }
 
       // Show reply in speech bubble + trigger animation
