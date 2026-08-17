@@ -1,13 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  collection,
-  addDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  limitToLast,
-  serverTimestamp,
-} from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { ref, push, onValue, off } from 'firebase/database';
 import { db } from '../firebase';
 
 const MESSAGES_KEY = 'nini_chat_identity';
@@ -36,35 +28,29 @@ const ChatRoom = ({ isOpen, onClose }) => {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const unsubRef = useRef(null);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
 
   // Real-time listener
   useEffect(() => {
     if (!isOpen || !identity) return;
 
-    const q = query(
-      collection(db, 'chat_messages'),
-      orderBy('createdAt'),
-      limitToLast(100)
-    );
+    const msgsRef = ref(db, 'chat_messages');
 
-    unsubRef.current = onSnapshot(q, (snap) => {
-      const msgs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgs);
-      setTimeout(scrollToBottom, 50);
+    const unsubscribe = onValue(msgsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        setMessages([]);
+        return;
+      }
+      const list = Object.entries(data).map(([id, msg]) => ({ id, ...msg }));
+      list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      setMessages(list);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     });
 
-    return () => {
-      if (unsubRef.current) {
-        unsubRef.current();
-        unsubRef.current = null;
-      }
-    };
-  }, [isOpen, identity, scrollToBottom]);
+    return () => off(msgsRef, 'value', unsubscribe);
+  }, [isOpen, identity]);
 
   // Focus input when opened
   useEffect(() => {
@@ -87,17 +73,18 @@ const ChatRoom = ({ isOpen, onClose }) => {
     setSending(true);
     setDraft('');
     try {
-      await addDoc(collection(db, 'chat_messages'), {
+      await push(ref(db, 'chat_messages'), {
         text,
         uid: identity.uid,
         senderName: identity.name,
-        createdAt: serverTimestamp(),
+        createdAt: Date.now(),
       });
     } catch (err) {
       console.error('Chat send error:', err);
       setDraft(text);
     } finally {
       setSending(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
