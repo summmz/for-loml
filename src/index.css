@@ -1897,6 +1897,9 @@ header {
     line-height: 1.4;
     word-wrap: break-word;
     animation: slide-up-fade 0.25s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .chatroom-bubble.mine {

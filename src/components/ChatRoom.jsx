@@ -374,7 +374,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="chatroom-messages">
+        <div className="chatroom-messages" onContextMenu={(e) => e.preventDefault()}>
           {messages.length === 0 && (
             <p className="chatroom-empty">Say something... the conversation starts here 🤍</p>
           )}
