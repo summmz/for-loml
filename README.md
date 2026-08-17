@@ -201,4 +201,4 @@ Built with React, powered by love, deployed on GitHub Pages. No servers, no data
 
 ---
 
-Made with love for someone special.
+Made with love for someone special. 💜
