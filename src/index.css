@@ -1933,19 +1933,18 @@ header {
     margin-top: 4px;
     text-align: right;
     letter-spacing: 0.2px;
-    opacity: 0.7;
 }
 
 .chatroom-status.sent {
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .chatroom-status.delivered {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .chatroom-status.seen {
-    color: #c084fc;
+    color: #e9d5ff;
 }
 
 .chatroom-input-bar {
