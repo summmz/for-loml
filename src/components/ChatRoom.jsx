@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ref as dbRef, push, onValue, off, set, get } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 
 const IDENTITY_KEY = 'nini_chat_identity';
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
+const REPLY_SWIPE_THRESHOLD = 80;
 
 const loadIdentity = () => {
   try {
@@ -22,45 +22,6 @@ const saveIdentity = (identity) => {
 
 const generateUid = () => Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
 
-const compressImage = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let w = img.width;
-        let h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round((h / w) * MAX); w = MAX; }
-          else { w = Math.round((w / h) * MAX); h = MAX; }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Compression failed'));
-        }, 'image/jpeg', 0.7);
-      };
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error('File read failed'));
-    reader.readAsDataURL(file);
-  });
-
-const REPLY_SWIPE_THRESHOLD = 80;
-
-const fileToBase64 = (blob) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Base64 conversion failed'));
-    reader.readAsDataURL(blob);
-  });
-
 const ChatRoom = ({ isOpen, onClose }) => {
   const [identity, setIdentity] = useState(loadIdentity);
   const [nameInput, setNameInput] = useState('');
@@ -70,17 +31,12 @@ const ChatRoom = ({ isOpen, onClose }) => {
   const [otherLastSeen, setOtherLastSeen] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
-  const [mediaPreview, setMediaPreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [swipeState, setSwipeState] = useState({ msgId: null, offset: 0, isMine: false });
-  const [mediaError, setMediaError] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
   const longPressTimerRef = useRef(null);
   const swipeRef = useRef({ active: false, msgId: null, startX: 0, startY: 0, locked: false, offset: 0, msg: null });
 
-  // Real-time listener + read status tracking
   useEffect(() => {
     if (!isOpen || !identity) return;
 
@@ -124,7 +80,6 @@ const ChatRoom = ({ isOpen, onClose }) => {
     if (isOpen && identity) setTimeout(() => inputRef.current?.focus(), 200);
   }, [isOpen, identity]);
 
-  // Dismiss context menu on outside click
   useEffect(() => {
     if (!contextMenu) return;
     const dismiss = (e) => {
@@ -150,8 +105,6 @@ const ChatRoom = ({ isOpen, onClose }) => {
     setIdentity(id);
   };
 
-  // --- Message actions ---
-
   const handleContextMenu = (e, msg) => {
     e.preventDefault();
     e.stopPropagation();
@@ -160,7 +113,6 @@ const ChatRoom = ({ isOpen, onClose }) => {
     setContextMenu({ msgId: msg.id, isMine: msg.uid === identity.uid, msg, x, y });
   };
 
-  // Unified pointer handlers: swipe-to-reply + long-press for context menu
   const handlePointerDown = (e, msg) => {
     swipeRef.current = {
       active: true, msgId: msg.id, startX: e.clientX, startY: e.clientY,
@@ -251,45 +203,19 @@ const ChatRoom = ({ isOpen, onClose }) => {
     setContextMenu(null);
     setReplyTo({
       id: msg.id,
-      text: msg.text || (msg.media ? `[${msg.media.type === 'image' ? 'Photo' : 'Video'}]` : ''),
+      text: msg.text || '',
       senderName: msg.senderName,
     });
     inputRef.current?.focus();
   };
 
-  // --- Media ---
-
-  const handleMediaSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      alert('File too large (max 20MB)');
-      e.target.value = '';
-      return;
-    }
-    const type = file.type.startsWith('video/') ? 'video' : 'image';
-    const preview = URL.createObjectURL(file);
-    setMediaPreview({ file, preview, type });
-    setMediaError(null);
-    e.target.value = '';
-  };
-
-  const removeMediaPreview = () => {
-    if (mediaPreview?.preview) URL.revokeObjectURL(mediaPreview.preview);
-    setMediaPreview(null);
-    setMediaError(null);
-  };
-
-  // --- Send ---
-
   const handleSend = async () => {
     const text = draft.trim();
-    if ((!text && !mediaPreview) || sending) return;
+    if (!text || sending) return;
     setSending(true);
-    setMediaError(null);
 
     const msgData = {
-      text: text || null,
+      text,
       uid: identity.uid,
       senderName: identity.name,
       createdAt: Date.now(),
@@ -298,47 +224,6 @@ const ChatRoom = ({ isOpen, onClose }) => {
     if (replyTo) {
       msgData.replyTo = { id: replyTo.id, text: replyTo.text, senderName: replyTo.senderName };
       setReplyTo(null);
-    }
-
-    if (mediaPreview) {
-      setUploading(true);
-      const currentFile = mediaPreview.file;
-      const currentType = mediaPreview.type;
-      const currentName = currentFile.name;
-      try {
-        const blob = currentType === 'image'
-          ? await compressImage(currentFile)
-          : currentFile;
-
-        let url;
-        try {
-          // Try Firebase Storage first
-          const ext = currentType === 'video' ? 'mp4' : 'jpg';
-          const fileName = `${identity.uid}/${Date.now()}.${ext}`;
-          const sRef = storageRef(storage, `chat_media/${fileName}`);
-          const snapshot = await uploadBytes(sRef, blob);
-          url = await getDownloadURL(snapshot.ref);
-        } catch (storageErr) {
-          console.warn('Storage upload failed, trying base64:', storageErr);
-          if (currentType === 'image') {
-            url = await fileToBase64(blob);
-          } else {
-            throw new Error('Video upload failed — try a smaller file');
-          }
-        }
-
-        msgData.media = { type: currentType, url, name: currentName };
-      } catch (err) {
-        console.error('Media error:', err);
-        setMediaError(err.message || 'Failed to send media');
-        setUploading(false);
-        setSending(false);
-        // Don't clear mediaPreview — let user retry or remove
-        setTimeout(() => inputRef.current?.focus(), 50);
-        return;
-      }
-      removeMediaPreview();
-      setUploading(false);
     }
 
     setDraft('');
@@ -365,10 +250,9 @@ const ChatRoom = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Name picker
   if (!identity) {
     return (
-    <div className="nini-modal-overlay" onClick={() => { if (!contextMenu) onClose(); }}>
+      <div className="nini-modal-overlay" onClick={onClose}>
         <div className="nini-modal-card chatroom-card" onClick={(e) => e.stopPropagation()}>
           <h2>Chat 💬</h2>
           <p className="modal-sub">Pick a name so they know it's you.</p>
@@ -392,7 +276,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
   }
 
   return (
-    <div className="nini-modal-overlay" onClick={onClose}>
+    <div className="nini-modal-overlay" onClick={() => { if (!contextMenu) onClose(); }}>
       <div className="nini-modal-card chatroom-card" onClick={(e) => e.stopPropagation()}>
         <div className="chatroom-header">
           <h2>Chat 💬</h2>
@@ -503,7 +387,6 @@ const ChatRoom = ({ isOpen, onClose }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Reply preview bar */}
         {replyTo && (
           <div className="chatroom-reply-bar">
             <div className="reply-bar-content">
@@ -514,37 +397,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* Media preview */}
-        {mediaPreview && (
-          <div className="chatroom-media-preview">
-            {mediaPreview.type === 'image' ? (
-              <img src={mediaPreview.preview} alt="Preview" />
-            ) : (
-              <video src={mediaPreview.preview} />
-            )}
-            <button className="media-preview-remove" onClick={removeMediaPreview}>✕</button>
-          </div>
-        )}
-        {mediaError && (
-          <div className="chatroom-media-error">{mediaError}</div>
-        )}
-
         <div className="chatroom-input-bar">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            className="chatroom-file-input"
-            onChange={handleMediaSelect}
-          />
-          <button
-            className="chatroom-attach-btn"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sending || uploading}
-            title="Attach photo or video"
-          >
-            +
-          </button>
           <input
             ref={inputRef}
             className="chatroom-input"
@@ -559,16 +412,15 @@ const ChatRoom = ({ isOpen, onClose }) => {
           <button
             className="chatroom-send"
             onClick={handleSend}
-            disabled={(!draft.trim() && !mediaPreview) || sending}
+            disabled={!draft.trim() || sending}
           >
-            {uploading ? '...' : '↑'}
+            ↑
           </button>
         </div>
 
         <button className="modal-close-btn" onClick={onClose}>Close</button>
       </div>
 
-      {/* Context menu */}
       {contextMenu && (
         <>
           <div
