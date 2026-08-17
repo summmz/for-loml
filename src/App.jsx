@@ -11,6 +11,7 @@ import MusicPlayer from './components/MusicPlayer';
 import DailyCheckinOverlay from './components/DailyCheckinOverlay';
 import SurpriseEvent from './components/SurpriseEvent';
 import CustomizeOverlay from './components/CustomizeOverlay';
+import ChatRoom from './components/ChatRoom';
 import LoveNotes, { maybeUnlockDailyNote, getUnreadNoteCount } from './components/LoveNotes';
 import { pollLiveNotes } from './utils/liveNotes';
 import { useWeather } from './hooks/useWeather';
@@ -420,6 +421,7 @@ function App() {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [unreadNotes, setUnreadNotes] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const weather = useWeather();
   const weatherRef = useRef(null);
   const settingsRef = useRef(settings);
@@ -959,6 +961,9 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
             </span>
           ) : <span />}
           <div className="header-actions">
+            <button className="settings-btn chat-trigger-btn" onClick={() => setIsChatOpen(true)} title="Chat">
+              💬
+            </button>
             <button className="settings-btn notes-trigger-btn" onClick={openNotes} title="Notes">
               💌
               {unreadNotes > 0 && <span className="notif-dot" />}
@@ -1037,6 +1042,11 @@ ${chatStyle.split('\n').slice(0, 500).join('\n')}
       settings={settings}
       onSave={saveSettings}
       onClose={() => setIsCustomizeOpen(false)}
+    />
+
+    <ChatRoom
+      isOpen={isChatOpen}
+      onClose={() => setIsChatOpen(false)}
     />
 
     <LoveNotes
