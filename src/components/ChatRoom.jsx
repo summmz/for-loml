@@ -541,7 +541,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
       {/* Context menu */}
       {contextMenu && (
         <>
-          <div className="chatroom-context-overlay" onClick={() => setContextMenu(null)} />
+          <div className="chatroom-context-overlay" onClick={(e) => { e.stopPropagation(); setContextMenu(null); }} />
           <div
             className="chatroom-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
