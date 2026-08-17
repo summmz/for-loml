@@ -53,6 +53,14 @@ const compressImage = (file) =>
 
 const REPLY_SWIPE_THRESHOLD = 80;
 
+const fileToBase64 = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Base64 conversion failed'));
+    reader.readAsDataURL(blob);
+  });
+
 const ChatRoom = ({ isOpen, onClose }) => {
   const [identity, setIdentity] = useState(loadIdentity);
   const [nameInput, setNameInput] = useState('');
@@ -65,6 +73,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
   const [mediaPreview, setMediaPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [swipeState, setSwipeState] = useState({ msgId: null, offset: 0, isMine: false });
+  const [mediaError, setMediaError] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -261,20 +270,14 @@ const ChatRoom = ({ isOpen, onClose }) => {
     const type = file.type.startsWith('video/') ? 'video' : 'image';
     const preview = URL.createObjectURL(file);
     setMediaPreview({ file, preview, type });
+    setMediaError(null);
     e.target.value = '';
   };
 
   const removeMediaPreview = () => {
     if (mediaPreview?.preview) URL.revokeObjectURL(mediaPreview.preview);
     setMediaPreview(null);
-  };
-
-  const uploadMedia = async (file, type) => {
-    const ext = type === 'video' ? 'mp4' : 'jpg';
-    const fileName = `${identity.uid}/${Date.now()}.${ext}`;
-    const sRef = storageRef(storage, `chat_media/${fileName}`);
-    const snapshot = await uploadBytes(sRef, file);
-    return getDownloadURL(snapshot.ref);
+    setMediaError(null);
   };
 
   // --- Send ---
@@ -283,6 +286,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
     const text = draft.trim();
     if ((!text && !mediaPreview) || sending) return;
     setSending(true);
+    setMediaError(null);
 
     const msgData = {
       text: text || null,
@@ -298,16 +302,39 @@ const ChatRoom = ({ isOpen, onClose }) => {
 
     if (mediaPreview) {
       setUploading(true);
+      const currentFile = mediaPreview.file;
+      const currentType = mediaPreview.type;
+      const currentName = currentFile.name;
       try {
-        const file = mediaPreview.type === 'image'
-          ? await compressImage(mediaPreview.file)
-          : mediaPreview.file;
-        const url = await uploadMedia(file, mediaPreview.type);
-        msgData.media = { type: mediaPreview.type, url, name: mediaPreview.file.name };
+        const blob = currentType === 'image'
+          ? await compressImage(currentFile)
+          : currentFile;
+
+        let url;
+        try {
+          // Try Firebase Storage first
+          const ext = currentType === 'video' ? 'mp4' : 'jpg';
+          const fileName = `${identity.uid}/${Date.now()}.${ext}`;
+          const sRef = storageRef(storage, `chat_media/${fileName}`);
+          const snapshot = await uploadBytes(sRef, blob);
+          url = await getDownloadURL(snapshot.ref);
+        } catch (storageErr) {
+          console.warn('Storage upload failed, trying base64:', storageErr);
+          if (currentType === 'image') {
+            url = await fileToBase64(blob);
+          } else {
+            throw new Error('Video upload failed — try a smaller file');
+          }
+        }
+
+        msgData.media = { type: currentType, url, name: currentName };
       } catch (err) {
-        console.error('Media upload error:', err);
-        setSending(false);
+        console.error('Media error:', err);
+        setMediaError(err.message || 'Failed to send media');
         setUploading(false);
+        setSending(false);
+        // Don't clear mediaPreview — let user retry or remove
+        setTimeout(() => inputRef.current?.focus(), 50);
         return;
       }
       removeMediaPreview();
@@ -497,6 +524,9 @@ const ChatRoom = ({ isOpen, onClose }) => {
             )}
             <button className="media-preview-remove" onClick={removeMediaPreview}>✕</button>
           </div>
+        )}
+        {mediaError && (
+          <div className="chatroom-media-error">{mediaError}</div>
         )}
 
         <div className="chatroom-input-bar">
