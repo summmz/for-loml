@@ -341,7 +341,7 @@ const ChatRoom = ({ isOpen, onClose }) => {
   // Name picker
   if (!identity) {
     return (
-      <div className="nini-modal-overlay" onClick={onClose}>
+    <div className="nini-modal-overlay" onClick={() => { if (!contextMenu) onClose(); }}>
         <div className="nini-modal-card chatroom-card" onClick={(e) => e.stopPropagation()}>
           <h2>Chat 💬</h2>
           <p className="modal-sub">Pick a name so they know it's you.</p>
@@ -541,7 +541,12 @@ const ChatRoom = ({ isOpen, onClose }) => {
       {/* Context menu */}
       {contextMenu && (
         <>
-          <div className="chatroom-context-overlay" onClick={(e) => { e.stopPropagation(); setContextMenu(null); }} />
+          <div
+            className="chatroom-context-overlay"
+            onClick={(e) => { e.stopPropagation(); setContextMenu(null); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
           <div
             className="chatroom-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
