@@ -31,6 +31,7 @@ body {
     margin: 0;
     padding: 0;
     position: relative;
+    z-index: 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -53,9 +54,9 @@ body {
 
 
 .game-container {
-    background: rgba(15, 23, 42, 0.45); /* Dark slate glass for premium look & excellent contrast */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 36px;
     padding: 48px 40px;
@@ -2008,4 +2009,359 @@ header {
 .chatroom-send:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Chat Room — Instagram Features (Unsend, Reply, React, Media)
+   ========================================================================== */
+
+/* Unsent message */
+.chatroom-unsent {
+    opacity: 0.5;
+    border-style: dashed !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.chatroom-unsent-text {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Swipe-to-reply */
+.chatroom-bubble {
+    position: relative;
+    touch-action: pan-y;
+}
+
+.chatroom-bubble.swiping {
+    transition: none !important;
+    user-select: none;
+    z-index: 2;
+}
+
+.chatroom-swipe-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(168, 85, 247, 0.85);
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+    filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.3));
+}
+
+.mine .chatroom-swipe-icon {
+    right: -28px;
+}
+
+.theirs .chatroom-swipe-icon {
+    left: -28px;
+}
+
+/* Reply quote inside bubble */
+.chatroom-reply-quote {
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 2.5px solid rgba(168, 85, 247, 0.7);
+    border-radius: 0 8px 8px 0;
+    padding: 5px 9px;
+    margin-bottom: 5px;
+    max-width: 240px;
+    overflow: hidden;
+}
+
+.mine .chatroom-reply-quote {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+.reply-quote-name {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(236, 72, 153, 0.9);
+    margin-bottom: 1px;
+}
+
+.reply-quote-text {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Reply preview bar (above input) */
+.chatroom-reply-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    border-radius: 12px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    gap: 8px;
+    animation: slide-up-fade 0.2s ease-out;
+}
+
+.reply-bar-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.reply-bar-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(168, 85, 247, 0.9);
+}
+
+.reply-bar-text {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reply-bar-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.reply-bar-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Media in messages */
+.chatroom-media {
+    margin-bottom: 4px;
+}
+
+.chatroom-media img {
+    max-width: 240px;
+    max-height: 300px;
+    border-radius: 14px;
+    display: block;
+    object-fit: cover;
+}
+
+.chatroom-media video {
+    max-width: 260px;
+    max-height: 320px;
+    border-radius: 14px;
+    display: block;
+    object-fit: cover;
+}
+
+/* Media preview in compose area */
+.chatroom-media-preview {
+    position: relative;
+    margin-bottom: 6px;
+    display: inline-block;
+    animation: slide-up-fade 0.2s ease-out;
+}
+
+.chatroom-media-preview img,
+.chatroom-media-preview video {
+    max-width: 120px;
+    max-height: 100px;
+    border-radius: 10px;
+    display: block;
+    border: 2px solid rgba(168, 85, 247, 0.4);
+}
+
+.media-preview-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.9);
+    color: #fff;
+    border: none;
+    font-size: 0.65rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Attachment button */
+.chatroom-file-input {
+    display: none;
+}
+
+.chatroom-attach-btn {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-right: 2px;
+}
+
+.chatroom-attach-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.chatroom-attach-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Context menu overlay */
+.chatroom-context-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 965;
+}
+
+/* Context menu */
+.chatroom-context-menu {
+    position: fixed;
+    z-index: 966;
+    background: rgba(30, 28, 45, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    animation: pop-in 0.15s ease-out;
+    min-width: 200px;
+}
+
+.context-reactions {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+    padding: 4px 0 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+}
+
+.context-reaction-btn {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+
+.context-reaction-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.25);
+}
+
+.context-reaction-btn:active {
+    transform: scale(0.95);
+}
+
+.context-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.context-action-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 10px;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.context-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.context-unsend {
+    color: #ef4444;
+}
+
+.context-unsend:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+/* Reaction pills on messages */
+.chatroom-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.chatroom-reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 2px 7px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1.3;
+}
+
+.chatroom-reaction-pill:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.chatroom-reaction-pill.reacted {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.45);
+}
+
+.reaction-count {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Touch device context menu hint: tap-and-hold */
+@media (hover: none) {
+    .chatroom-context-menu {
+        left: 50% !important;
+        transform: translateX(-50%);
+    }
 }
