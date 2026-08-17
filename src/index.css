@@ -1926,6 +1926,28 @@ header {
     display: block;
 }
 
+.chatroom-status {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-top: 4px;
+    text-align: right;
+    letter-spacing: 0.2px;
+    opacity: 0.7;
+}
+
+.chatroom-status.sent {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.chatroom-status.delivered {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chatroom-status.seen {
+    color: #c084fc;
+}
+
 .chatroom-input-bar {
     display: flex;
     align-items: center;
