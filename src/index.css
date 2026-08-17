@@ -1900,6 +1900,7 @@ header {
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+    text-align: left;
 }
 
 .chatroom-bubble.mine {
@@ -1919,6 +1920,7 @@ header {
 
 .chatroom-sender {
     display: block;
+    text-align: left;
     font-size: 0.7rem;
     font-weight: 700;
     color: rgba(236, 72, 153, 0.9);
